@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kolé.ok — gestión de contenido</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F5F0E8; --warm-white: #FAF7F2; --beige: #E8DDD0; --sand: #D4C5B0;
+  --terracotta: #C4805A; --terracotta-soft: #D4956E; --sage: #7A8C6E;
+  --sage-light: #9FAE92; --warm-brown: #5C4A3A; --muted-brown: #8C7B6B;
+  --ink: #2C2420; --ink-light: #4A3B33;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+h1,h2,h3,h4 { font-family: 'Cormorant Garamond', serif; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--beige); }
+::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+.nav-logo { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 1.5rem; }
+.nav-tab { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; padding: 0.5rem 1rem; border-radius: 2px; transition: all 0.2s; color: var(--muted-brown); background: none; border: none; font-family: 'DM Sans', sans-serif; }
+.nav-tab.active { background: var(--ink); color: var(--cream); }
+.nav-tab:hover:not(.active) { color: var(--ink); }
+.section { display: none; }
+.section.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.post-card { background: var(--warm-white); border: 1px solid var(--beige); border-radius: 4px; padding: 1rem; transition: all 0.2s; position: relative; }
+.post-card:hover { border-color: var(--sand); box-shadow: 0 2px 12px rgba(44,36,32,.06); }
+.post-card.dragging { opacity: 0.4; }
+.post-card.drag-over { border: 2px dashed var(--terracotta); background: #FBF0EB; }
+.post-card.posteado { opacity: 0.35; cursor: default; }
+.post-tag { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 20px; font-weight: 500; }
+.tag-reel { background: #EDE0D4; color: var(--terracotta); }
+.tag-carrusel { background: #DCE4D8; color: var(--sage); }
+.status-btn { font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 20px; cursor: pointer; border: 1px solid; transition: all 0.15s; white-space: nowrap; background: none; font-family: 'DM Sans', sans-serif; }
+.status-incompleto { border-color: var(--sand); color: var(--muted-brown); }
+.status-editando { border-color: #E8C97A; color: #A07830; background: #FBF5E6; }
+.status-listo { border-color: var(--sage); color: var(--sage); background: #F0F4EE; }
+.status-posteado { border-color: var(--terracotta); color: var(--terracotta); background: #F9EDE6; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(44,36,32,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; backdrop-filter: blur(2px); }
+.modal-box { background: var(--warm-white); border-radius: 6px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 2rem; position: relative; }
+.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; cursor: pointer; color: var(--muted-brown); font-size: 1.4rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.15s; }
+.modal-close:hover { background: var(--beige); }
+.hook-card { background: var(--cream); border: 1px solid var(--beige); border-radius: 4px; padding: 0.75rem 1rem; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; margin-bottom: 0.4rem; }
+.hook-card:hover { border-color: var(--terracotta-soft); background: #FBF0EB; }
+.hook-card.selected { border-color: var(--terracotta); background: #F9EDE6; }
+textarea, input[type="text"] { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; background: var(--cream); border: 1px solid var(--beige); border-radius: 4px; padding: 0.6rem 0.8rem; width: 100%; resize: vertical; outline: none; color: var(--ink); transition: border-color 0.15s; }
+textarea:focus, input[type="text"]:focus { border-color: var(--sand); }
+.btn-primary { background: var(--ink); color: var(--cream); border: none; border-radius: 3px; padding: 0.55rem 1.2rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+.btn-primary:hover { background: var(--ink-light); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: transparent; color: var(--muted-brown); border: 1px solid var(--sand); border-radius: 3px; padding: 0.5rem 1rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+.btn-secondary:hover { border-color: var(--muted-brown); color: var(--ink); }
+.btn-danger { background: #F9EDE6; color: var(--terracotta); border: 1px solid var(--terracotta-soft); border-radius: 3px; padding: 0.5rem 1rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+.btn-danger:hover { background: var(--terracotta); color: white; }
+.trend-card { background: var(--warm-white); border: 1px solid var(--beige); border-radius: 4px; padding: 1.25rem; transition: all 0.2s; }
+.trend-card:hover { border-color: var(--sand); }
+.trend-tag { font-size: 0.62rem; padding: 0.15rem 0.45rem; border-radius: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+.source-link { font-size: 0.7rem; color: var(--sage); text-decoration: none; border-bottom: 1px solid var(--sage-light); transition: color 0.15s; }
+.source-link:hover { color: var(--ink); }
+.flash-card { background: var(--warm-white); border-left: 2px solid var(--terracotta); padding: 1rem 1.25rem; border-radius: 0 4px 4px 0; transition: all 0.2s; }
+.flash-card:hover { background: #FBF5F0; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--beige); border-top-color: var(--terracotta); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.slide-row { display: flex; gap: 0.5rem; align-items: start; margin-bottom: 0.5rem; }
+.slide-num { width: 24px; height: 24px; border-radius: 50%; background: var(--beige); color: var(--muted-brown); font-size: 0.7rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.4rem; }
+.stat-pill { background: var(--warm-white); border: 1px solid var(--beige); border-radius: 20px; padding: 0.3rem 0.8rem; font-size: 0.75rem; color: var(--muted-brown); }
+.stat-pill span { color: var(--ink); font-weight: 500; }
+.week-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+@media (max-width:640px) { .week-grid { grid-template-columns: 1fr; } .modal-box { padding: 1.25rem; } .nav-tab { padding: 0.4rem 0.6rem; font-size: 0.7rem; } }
+.ai-badge { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--ink); color: var(--cream); padding: 0.15rem 0.4rem; border-radius: 2px; vertical-align: middle; }
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--ink); color: var(--cream); padding: 0.75rem 1.25rem; border-radius: 4px; font-size: 0.8rem; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; max-width: 280px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.drag-handle { cursor: grab; color: var(--sand); font-size: 0.9rem; user-select: none; padding: 0 0.1rem; }
+.drag-handle:hover { color: var(--muted-brown); }
+.week-header { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-brown); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+
+<nav style="background:var(--warm-white); border-bottom:1px solid var(--beige); position:sticky; top:0; z-index:50;">
+  <div style="max-width:1100px; margin:0 auto; padding:0.75rem 1.25rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <div class="nav-logo" style="color:var(--ink); margin-right:auto;">kolé<span style="color:var(--terracotta)">.</span>ok</div>
+    <div style="display:flex; gap:0.25rem; flex-wrap:wrap;">
+      <button class="nav-tab active" onclick="switchTab('calendario',this)">Calendario</button>
+      <button class="nav-tab" onclick="switchTab('radar',this)">Radar</button>
+      <button class="nav-tab" onclick="switchTab('flash',this)">Flash 24h</button>
+    </div>
+    <button class="btn-secondary" onclick="exportData()" style="font-size:0.65rem;">↓ Exportar</button>
+  </div>
+</nav>
+
+<div style="background:var(--cream); border-bottom:1px solid var(--beige); padding:0.5rem 1.25rem;">
+  <div style="max-width:1100px; margin:0 auto; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+    <span class="stat-pill">Seguidores <span>2.588</span></span>
+    <span class="stat-pill">Posts <span>196</span></span>
+    <span class="stat-pill" id="stat-listos">Listos <span>0</span></span>
+    <span class="stat-pill" id="stat-posteados">Posteados <span>0</span></span>
+    <span style="margin-left:auto; font-size:0.7rem; color:var(--muted-brown); font-family:'Cormorant Garamond',serif; font-style:italic;">la creatividad no desaparece — se habilita.</span>
+  </div>
+</div>
+
+<main style="max-width:1100px; margin:0 auto; padding:1.5rem 1.25rem;">
+
+  <div id="section-calendario" class="section active">
+    <div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+      <h2 style="font-size:2rem; font-weight:300; letter-spacing:-0.02em;">Calendario Editorial</h2>
+      <div style="display:flex; gap:0.5rem; align-items:center; margin-left:auto;">
+        <button class="btn-secondary" onclick="prevMonth()">←</button>
+        <span id="month-label" style="font-size:0.85rem; color:var(--muted-brown); min-width:130px; text-align:center;"></span>
+        <button class="btn-secondary" onclick="nextMonth()">→</button>
+      </div>
+    </div>
+    <p style="font-size:0.78rem; color:var(--muted-brown); margin-bottom:1.25rem;">Arrastrá cualquier card con el ⠿ para cambiarla de semana o posición.</p>
+    <div id="calendar-container"></div>
+  </div>
+
+  <div id="section-radar" class="section">
+    <div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+      <h2 style="font-size:2rem; font-weight:300; letter-spacing:-0.02em;">Radar de Tendencias</h2>
+      <button class="btn-primary" onclick="loadTrends()" id="btn-refresh-trends" style="margin-left:auto;">Actualizar</button>
+    </div>
+    <p style="font-size:0.78rem; color:var(--muted-brown); margin-bottom:1.5rem;">Marketing · IA · Cine · Libros · Salud Mental · Tech · Argentina · Si marcás "No me interesa" lo reemplazamos automáticamente.</p>
+    <div id="trends-container"><div style="text-align:center;padding:3rem;color:var(--muted-brown);"><div class="spinner" style="margin:0 auto 1rem;"></div><p style="font-size:0.85rem;">Cargando tendencias...</p></div></div>
+  </div>
+
+  <div id="section-flash" class="section">
+    <div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+      <h2 style="font-size:2rem; font-weight:300; letter-spacing:-0.02em;">Flash 24h</h2>
+      <button class="btn-primary" onclick="loadFlash()" id="btn-refresh-flash" style="margin-left:auto;">↻ Actualizar</button>
+    </div>
+    <p style="font-size:0.78rem; color:var(--muted-brown); margin-bottom:1.5rem;">Datos y noticias del día para tus Stories, con fuentes.</p>
+    <div id="flash-container"><div style="text-align:center;padding:3rem;"><div class="spinner" style="margin:0 auto;"></div></div></div>
+  </div>
+
+</main>
+
+<!-- MODAL GENERADOR -->
+<div id="modal-content" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modal-inner"></div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR POSTEADO -->
+<div id="modal-confirm" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:380px;">
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.75rem;">¿Confirmar posteo?</h3>
+    <p style="font-size:0.85rem;color:var(--muted-brown);margin-bottom:1.5rem;">El espacio va a quedar libre en el calendario.</p>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="document.getElementById('modal-confirm').style.display='none'">Cancelar</button>
+      <button class="btn-danger" id="btn-confirm-post">Sí, posteado ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SUMAR TENDENCIA -->
+<div id="modal-trend-action" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('modal-trend-action').style.display='none'">×</button>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;margin-bottom:0.5rem;">¿Dónde lo sumamos?</h3>
+    <p id="trend-action-title" style="font-size:0.85rem;color:var(--muted-brown);margin-bottom:1.5rem;font-style:italic;"></p>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <button class="btn-primary" onclick="addTrendToCalendar('next')">Próxima semana libre</button>
+      <button class="btn-secondary" onclick="addTrendToCalendar('replace')">Reemplazar un post existente</button>
+      <button class="btn-secondary" onclick="document.getElementById('modal-trend-action').style.display='none'">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ─── CONFIGURACIÓN DE API ─────────────────────────────────────────────────────
+// La app intenta primero la Netlify Function (/.netlify/functions/ai).
+// Si no existe (estás en local o la Function no está configurada), muestra un error claro.
+// Ver instrucciones al pie del archivo para configurar Netlify.
+
+async function callAI(messages, useSearch = false) {
+  // 1. Intenta Netlify Function
+  try {
+    const r = await fetch('/.netlify/functions/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, useSearch })
+    });
+    if (r.ok) {
+      const d = await r.json();
+      return d.text || '';
+    }
+  } catch(e) { /* no hay Function, sigue */ }
+
+  // 2. Intenta llamada directa (funciona en local con extensión CORS deshabilitada, no en producción)
+  try {
+    const payload = { model: 'claude-sonnet-4-20250514', max_tokens: 1200, messages };
+    if (useSearch) payload.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d.content.filter(c => c.type === 'text').map(c => c.text).join('');
+  } catch(e) {
+    throw new Error('Para usar la IA, necesitás configurar la Netlify Function. Ver instrucciones al final del HTML.');
+  }
+}
+
+function parseJSON(text) {
+  const clean = text.replace(/```json|```/g, '').trim();
+  const arrMatch = clean.match(/\[[\s\S]*\]/);
+  const objMatch = clean.match(/\{[\s\S]*\}/);
+  if (arrMatch) return JSON.parse(arrMatch[0]);
+  if (objMatch) return JSON.parse(objMatch[0]);
+  throw new Error('Respuesta inesperada de la IA');
+}
+
+// ─── ESTADO ──────────────────────────────────────────────────────────────────
+let currentDate = new Date();
+let calendarData = JSON.parse(localStorage.getItem('kole_calendar') || '{}');
+let trendsData = [];
+let currentTrendIdx = null;
+let dragSrcKey = null;
+
+const STATUSES = ['incompleto', 'editando', 'listo', 'posteado'];
+const STATUS_LABELS = { incompleto: 'Incompleto', editando: 'Editando', listo: 'Listo ✓', posteado: 'Posteado' };
+const STATUS_CLASSES = { incompleto: 'status-incompleto', editando: 'status-editando', listo: 'status-listo', posteado: 'status-posteado' };
+
+function saveCalendar() { localStorage.setItem('kole_calendar', JSON.stringify(calendarData)); updateStats(); }
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'radar' && !trendsData.length) loadTrends();
+  if (tab === 'flash' && document.getElementById('flash-container').innerHTML.includes('spinner')) loadFlash();
+}
+
+// ─── CALENDARIO ──────────────────────────────────────────────────────────────
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); }
+function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); }
+
+function getWeeks(year, month) {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  let weeks = [], cur = new Date(first), n = 1;
+  while (cur <= last) {
+    const start = new Date(cur);
+    const end = new Date(cur);
+    end.setDate(end.getDate() + 6);
+    if (end > last) end.setTime(last.getTime());
+    weeks.push({ weekNum: n, startDay: start.getDate(), endDay: end.getDate() });
+    cur.setDate(cur.getDate() + 7);
+    n++;
+  }
+  return weeks;
+}
+
+function getPostKey(year, month, week, slot) { return `${year}-${month}-w${week}-s${slot}`; }
+
+function renderCalendar() {
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  document.getElementById('month-label').textContent = `${MONTHS[month]} ${year}`;
+  const weeks = getWeeks(year, month);
+  let html = '';
+  weeks.forEach(({ weekNum, startDay, endDay }) => {
+    const slots = [
+      { slot: 0, type: 'reel', label: 'Reel 1' },
+      { slot: 1, type: 'reel', label: 'Reel 2' },
+      { slot: 2, type: 'carrusel', label: 'Carrusel' },
+    ];
+    html += `<div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.6rem;">
+        <span class="week-header">Semana ${weekNum}</span>
+        <span style="font-size:0.72rem;color:var(--sand);">${startDay}–${endDay} ${MONTHS[month]}</span>
+        <div style="flex:1;height:1px;background:var(--beige);margin-left:0.5rem;"></div>
+      </div>
+      <div class="week-grid">`;
+    slots.forEach(({ slot, type, label }) => {
+      const key = getPostKey(year, month, weekNum, slot);
+      const post = calendarData[key] || { status: 'incompleto' };
+      if (post.status === 'posteado') {
+        html += `<div class="post-card posteado" style="display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <div style="text-align:center;color:var(--sand);"><div style="font-size:1.5rem;">✓</div><div style="font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;">Posteado</div></div>
+        </div>`;
+        return;
+      }
+      const sc = STATUS_CLASSES[post.status || 'incompleto'];
+      const hasContent = post.hook || post.guion || post.titulo || post.tema;
+      html += `<div class="post-card" id="card-${key}" draggable="true"
+        ondragstart="onDragStart(event,'${key}')"
+        ondragover="onDragOver(event,'${key}')"
+        ondragleave="onDragLeave(event,'${key}')"
+        ondrop="onDrop(event,'${key}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+          <div style="display:flex;gap:0.4rem;align-items:center;">
+            <span class="drag-handle" title="Arrastrá para mover">⠿</span>
+            <span class="post-tag tag-${type}">${type === 'reel' ? '▶' : '☰'} ${label}</span>
+          </div>
+          <button class="${sc} status-btn" onclick="cycleStatus('${key}',event)">${STATUS_LABELS[post.status || 'incompleto']}</button>
+        </div>
+        ${hasContent
+          ? `<div style="font-size:0.8rem;color:var(--muted-brown);margin-bottom:0.6rem;line-height:1.4;min-height:40px;">
+              ${post.tema ? `<div style="font-weight:500;color:var(--ink-light);margin-bottom:0.2rem;font-size:0.78rem;">${post.tema}</div>` : ''}
+              ${post.hook ? `<div style="font-style:italic;font-size:0.75rem;">"${post.hook.substring(0,80)}${post.hook.length > 80 ? '...' : ''}"</div>` : ''}
+              ${(post.titulo && !post.hook) ? `<div style="font-style:italic;font-size:0.75rem;">${post.titulo.substring(0,80)}</div>` : ''}
+            </div>`
+          : `<div style="font-size:0.78rem;color:var(--sand);margin-bottom:0.6rem;min-height:40px;display:flex;align-items:center;font-style:italic;">Sin contenido aún...</div>`}
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          <button class="btn-primary" style="font-size:0.62rem;padding:0.25rem 0.65rem;" onclick="openGenerator('${key}','${type}')">${hasContent ? 'Editar' : 'Generar ✦'}</button>
+          ${hasContent ? `<button class="btn-secondary" style="font-size:0.62rem;padding:0.2rem 0.5rem;" onclick="clearPost('${key}')">Limpiar</button>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById('calendar-container').innerHTML = html;
+  updateStats();
+}
+
+// ─── DRAG & DROP ─────────────────────────────────────────────────────────────
+function onDragStart(e, key) {
+  dragSrcKey = key;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = document.getElementById('card-' + key); if (el) el.classList.add('dragging'); }, 0);
+}
+function onDragOver(e, key) {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  if (key !== dragSrcKey) { const el = document.getElementById('card-' + key); if (el) el.classList.add('drag-over'); }
+}
+function onDragLeave(e, key) {
+  const el = document.getElementById('card-' + key); if (el) el.classList.remove('drag-over');
+}
+function onDrop(e, targetKey) {
+  e.preventDefault();
+  document.querySelectorAll('.post-card').forEach(c => c.classList.remove('drag-over', 'dragging'));
+  if (!dragSrcKey || dragSrcKey === targetKey) return;
+  const src = { ...(calendarData[dragSrcKey] || { status: 'incompleto' }) };
+  const tgt = { ...(calendarData[targetKey] || { status: 'incompleto' }) };
+  calendarData[dragSrcKey] = tgt;
+  calendarData[targetKey] = src;
+  dragSrcKey = null;
+  saveCalendar();
+  renderCalendar();
+  showToast('Contenido movido ✓');
+}
+
+// ─── ESTADOS ─────────────────────────────────────────────────────────────────
+function cycleStatus(key, e) {
+  e.stopPropagation();
+  const post = calendarData[key] || { status: 'incompleto' };
+  const idx = STATUSES.indexOf(post.status || 'incompleto');
+  const next = STATUSES[(idx + 1) % STATUSES.length];
+  if (next === 'posteado') {
+    document.getElementById('btn-confirm-post').onclick = () => confirmPosteado(key);
+    document.getElementById('modal-confirm').style.display = 'flex';
+    return;
+  }
+  post.status = next;
+  calendarData[key] = post;
+  saveCalendar();
+  renderCalendar();
+}
+function confirmPosteado(key) {
+  calendarData[key] = { status: 'posteado' };
+  saveCalendar();
+  document.getElementById('modal-confirm').style.display = 'none';
+  renderCalendar();
+  showToast('Marcado como posteado 🎉');
+}
+function clearPost(key) {
+  if (confirm('¿Limpiar este espacio?')) { calendarData[key] = { status: 'incompleto' }; saveCalendar(); renderCalendar(); }
+}
+
+// ─── GENERADOR ───────────────────────────────────────────────────────────────
+let currentGenKey = null, currentGenType = null;
+
+function openGenerator(key, type) {
+  currentGenKey = key; currentGenType = type;
+  const post = calendarData[key] || {};
+  const isReel = type === 'reel';
+  document.getElementById('modal-inner').innerHTML = `
+    <div style="margin-bottom:1.25rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem;">
+        <span class="post-tag tag-${type}">${isReel ? '▶ Reel' : '☰ Carrusel'}</span>
+        <span class="ai-badge">IA</span>
+      </div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:400;margin-top:0.5rem;">${isReel ? 'Generador de Reel' : 'Generador de Carrusel'}</h3>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">Tema o idea base</label>
+      <input type="text" id="gen-tema" placeholder="Ej: burnout creativo, The Devil Wears Prada 2, creatividad..." value="${escHtml(post.tema || '')}">
+    </div>
+    <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+      <button class="btn-primary" onclick="generateContent()" id="btn-gen" style="flex:1;">Generar con IA ✦</button>
+    </div>
+    <div id="gen-result">${isReel ? renderReelForm(post) : renderCarruselForm(post)}</div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--beige);">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="saveContent()">Guardar</button>
+    </div>`;
+  document.getElementById('modal-content').style.display = 'flex';
+}
+
+function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderReelForm(post) {
+  const hooks = post.hooks || [];
+  return `
+    ${hooks.length ? `<div style="margin-bottom:1rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.5rem;">Elegí un hook</label>
+      ${hooks.map((h, i) => `<div class="hook-card ${post.hook === h ? 'selected' : ''}" id="hook-${i}" onclick="selectHook(${i})">${i+1}. ${escHtml(h)}</div>`).join('')}
+    </div>` : ''}
+    <div style="margin-bottom:0.75rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">Hook seleccionado</label>
+      <input type="text" id="gen-hook" placeholder="Pregunta o afirmación de apertura..." value="${escHtml(post.hook || '')}">
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">Guion</label>
+      <textarea id="gen-guion" rows="4" placeholder="Desarrollo...">${escHtml(post.guion || '')}</textarea>
+    </div>
+    <div>
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">CTA</label>
+      <input type="text" id="gen-cta" placeholder="Llamado a la acción..." value="${escHtml(post.cta || '')}">
+    </div>`;
+}
+
+function renderCarruselForm(post) {
+  const slides = post.slides || Array(6).fill('');
+  return `
+    <div style="margin-bottom:0.75rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">Título de portada</label>
+      <input type="text" id="gen-titulo" placeholder="Titular impactante..." value="${escHtml(post.titulo || '')}">
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.5rem;">Slides</label>
+      ${slides.map((s, i) => `<div class="slide-row"><div class="slide-num">${i+1}</div><textarea id="slide-${i}" rows="2" placeholder="Una sola idea, breve...">${escHtml(s)}</textarea></div>`).join('')}
+    </div>
+    <div>
+      <label style="font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-brown);display:block;margin-bottom:0.4rem;">CTA final</label>
+      <input type="text" id="gen-cta" placeholder="Llamado a la acción..." value="${escHtml(post.cta || '')}">
+    </div>`;
+}
+
+// Guardamos los hooks en una variable global accesible para selectHook
+let _currentHooks = [];
+
+function selectHook(idx) {
+  document.querySelectorAll('[id^="hook-"]').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('hook-' + idx); if (el) el.classList.add('selected');
+  const input = document.getElementById('gen-hook');
+  if (input && _currentHooks[idx]) input.value = _currentHooks[idx];
+}
+
+async function generateContent() {
+  const tema = document.getElementById('gen-tema').value.trim();
+  if (!tema) { showToast('Escribí un tema primero'); return; }
+  const btn = document.getElementById('btn-gen');
+  btn.innerHTML = '<span class="spinner"></span> Generando...'; btn.disabled = true;
+  const isReel = currentGenType === 'reel';
+  const prompt = isReel
+    ? `Sos copywriter para la agencia kolé.ok (Argentina). Estilo editorial, minimalista, cálido, curioso. Sin emojis en el guion.
+Tema: "${tema}"
+Respondé SOLO con este JSON sin markdown ni backticks:
+{"hooks":["pregunta disparadora curiosa","dato inesperado como hook","afirmación que genera tensión"],"guion":"4-6 oraciones con ritmo, sin hashtags","cta":"CTA breve en español argentino"}`
+    : `Sos copywriter para la agencia kolé.ok (Argentina). Estilo editorial, minimalista, cálido.
+Tema: "${tema}"
+Respondé SOLO con este JSON sin markdown ni backticks:
+{"titulo":"título de portada impactante","slides":["slide 1","slide 2","slide 3","slide 4","slide 5","slide 6"],"cta":"CTA del último slide"}
+Cada slide: máx 25 palabras, una sola idea.`;
+  try {
+    const text = await callAI([{ role: 'user', content: prompt }]);
+    const parsed = parseJSON(text);
+    const post = { ...(calendarData[currentGenKey] || {}), tema };
+    if (isReel) {
+      post.hooks = parsed.hooks || [];
+      post.guion = parsed.guion || '';
+      post.cta = parsed.cta || '';
+      post.hook = (parsed.hooks || [])[0] || '';
+      _currentHooks = post.hooks;
+    } else {
+      post.titulo = parsed.titulo || '';
+      post.slides = parsed.slides || [];
+      post.cta = parsed.cta || '';
+    }
+    document.getElementById('gen-result').innerHTML = isReel ? renderReelForm(post) : renderCarruselForm(post);
+  } catch(err) {
+    showToast('Error: ' + err.message);
+  }
+  btn.innerHTML = 'Regenerar ✦'; btn.disabled = false;
+}
+
+function saveContent() {
+  const key = currentGenKey;
+  const post = { ...(calendarData[key] || { status: 'incompleto' }) };
+  const isReel = currentGenType === 'reel';
+  post.tema = document.getElementById('gen-tema')?.value || post.tema || '';
+  post.status = post.status || 'incompleto';
+  if (isReel) {
+    post.hook = document.getElementById('gen-hook')?.value || '';
+    post.guion = document.getElementById('gen-guion')?.value || '';
+    post.cta = document.getElementById('gen-cta')?.value || '';
+  } else {
+    post.titulo = document.getElementById('gen-titulo')?.value || '';
+    post.cta = document.getElementById('gen-cta')?.value || '';
+    post.slides = [];
+    let i = 0;
+    while (document.getElementById(`slide-${i}`)) { post.slides.push(document.getElementById(`slide-${i}`).value); i++; }
+  }
+  calendarData[key] = post;
+  saveCalendar(); closeModal(); renderCalendar(); showToast('Guardado ✓');
+}
+
+function closeModal() { document.getElementById('modal-content').style.display = 'none'; }
+
+// ─── RADAR ───────────────────────────────────────────────────────────────────
+const CAT_COLORS = {
+  'Marketing': { c: '#7A8C6E', bg: '#EEF2EC' }, 'IA': { c: '#5C4A9A', bg: '#EEEAF8' },
+  'Cine': { c: '#8C4A3A', bg: '#F5ECE8' }, 'Libros': { c: '#3A6C8C', bg: '#E8F0F5' },
+  'Salud Mental': { c: '#6C8C3A', bg: '#EDF3E8' }, 'Argentina': { c: '#8C7A3A', bg: '#F5F0E0' },
+  'Tech': { c: '#4A6C8C', bg: '#E8EDF5' },
+};
+
+async function loadTrends(replaceIdx = null) {
+  const btn = document.getElementById('btn-refresh-trends');
+  if (btn) { btn.textContent = 'Cargando...'; btn.disabled = true; }
+
+  if (replaceIdx === null) {
+    document.getElementById('trends-container').innerHTML = `<div style="text-align:center;padding:3rem;color:var(--muted-brown);"><div class="spinner" style="margin:0 auto 1rem;"></div><p style="font-size:0.85rem;">Buscando tendencias con fuentes reales...</p></div>`;
+    trendsData = [];
+  } else {
+    // Marca esa card como "cargando"
+    trendsData[replaceIdx] = { titulo: 'Buscando algo nuevo...', resumen: '', categoria: '...', _loading: true, interest: null };
+    renderTrends();
+  }
+
+  const today = new Date().toLocaleDateString('es-AR');
+  const prompt = replaceIdx !== null
+    ? `Generá UNA sola tendencia nueva (diferente a las anteriores) para una agencia de contenido argentina, hoy ${today}.
+Respondé SOLO con este JSON (un objeto, no array) sin markdown:
+{"titulo":"...","resumen":"2 oraciones","categoria":"Marketing|IA|Cine|Libros|Salud Mental|Argentina|Tech","angulo":"idea concreta para kolé.ok","fuente_nombre":"nombre del medio","fuente_url":"https://url-real.com"}`
+    : `Generá 8 tendencias/noticias relevantes para una agencia de contenido argentina, hoy ${today}.
+Para cada una incluí la URL real de una fuente (puede ser la home del medio).
+Respondé SOLO con JSON sin markdown:
+[{"titulo":"...","resumen":"2 oraciones","categoria":"Marketing","angulo":"idea para kolé.ok","fuente_nombre":"nombre del medio","fuente_url":"https://..."},...]
+8 items.`;
+
+  try {
+    const text = await callAI([{ role: 'user', content: prompt }], true);
+    const parsed = parseJSON(text);
+    if (replaceIdx !== null) {
+      trendsData[replaceIdx] = { ...(Array.isArray(parsed) ? parsed[0] : parsed), interest: null };
+    } else {
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      trendsData = arr.map(t => ({ ...t, interest: null }));
+    }
+    renderTrends();
+  } catch(e) {
+    if (replaceIdx === null) renderTrendsFallback();
+    else { trendsData[replaceIdx] = { titulo: 'Error al cargar', resumen: 'Intentá actualizar el radar.', categoria: '...', interest: null }; renderTrends(); }
+  }
+  if (btn) { btn.textContent = 'Actualizar'; btn.disabled = false; }
+}
+
+function renderTrends() {
+  if (!trendsData.length) { renderTrendsFallback(); return; }
+  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;">`;
+  trendsData.forEach((t, i) => {
+    const cat = CAT_COLORS[t.categoria] || CAT_COLORS['Marketing'];
+    const saved = t.interest === true;
+    html += `<div class="trend-card" style="${t._loading ? 'opacity:0.5;' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;">
+        <span class="trend-tag" style="color:${cat.c};background:${cat.bg};">${t.categoria}</span>
+        ${t._loading ? '<span class="spinner"></span>' : (saved ? '<span style="font-size:0.7rem;color:var(--sage);">✓ Guardado</span>' : '')}
+      </div>
+      <h4 style="font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:500;line-height:1.3;margin-bottom:0.5rem;">${escHtml(t.titulo)}</h4>
+      <p style="font-size:0.78rem;color:var(--muted-brown);line-height:1.5;margin-bottom:0.5rem;">${escHtml(t.resumen || '')}</p>
+      ${t.angulo ? `<p style="font-size:0.72rem;color:var(--sage);border-left:2px solid var(--sage-light);padding-left:0.5rem;margin-bottom:0.6rem;font-style:italic;">${escHtml(t.angulo)}</p>` : ''}
+      ${t.fuente_url ? `<div style="margin-bottom:0.75rem;display:flex;align-items:center;gap:0.3rem;">
+        <span style="font-size:0.65rem;color:var(--muted-brown);text-transform:uppercase;letter-spacing:0.06em;">Fuente:</span>
+        <a href="${escHtml(t.fuente_url)}" target="_blank" rel="noopener" class="source-link">↗ ${escHtml(t.fuente_nombre || t.fuente_url)}</a>
+      </div>` : ''}
+      ${!t._loading ? `<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        ${!saved ? `<button class="btn-primary" style="font-size:0.65rem;padding:0.25rem 0.6rem;" onclick="markTrend(${i},true)">Me interesa ✓</button>` : ''}
+        <button class="btn-secondary" style="font-size:0.65rem;padding:0.2rem 0.5rem;" onclick="discardTrend(${i})">${saved ? 'Quitar' : 'No me interesa'}</button>
+      </div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('trends-container').innerHTML = html;
+}
+
+function renderTrendsFallback() {
+  trendsData = [
+    { titulo: 'El carrusel sigue siendo el rey del engagement', resumen: 'Los posts con múltiples slides generan hasta 3x más saves que los estáticos. Una idea por slide es la clave.', categoria: 'Marketing', angulo: 'Mostrar el proceso creativo de la agencia en pasos simples', fuente_nombre: 'Later Blog', fuente_url: 'https://later.com/blog/', interest: null },
+    { titulo: 'IA y autenticidad: la paradoja del 2025', resumen: 'Las audiencias detectan contenido generado por IA y aun así lo consumen más. El debate sigue abierto en marketing.', categoria: 'IA', angulo: 'Hablar desde adentro: cómo usa kolé.ok la IA sin perder su voz', fuente_nombre: 'Wired', fuente_url: 'https://www.wired.com/', interest: null },
+    { titulo: 'Salud mental en redes: honestidad como estrategia', resumen: 'Las cuentas que muestran el "detrás de escena emocional" crecen hasta 3x más que las que solo muestran resultados.', categoria: 'Salud Mental', angulo: 'Reel sobre el burnout creativo en agencias pequeñas', fuente_nombre: 'Psychology Today', fuente_url: 'https://www.psychologytoday.com/', interest: null },
+    { titulo: 'Disney y el renacimiento del storytelling visual', resumen: 'Las nuevas apuestas de animación generan conversaciones masivas y lecciones para marcas de cualquier tamaño.', categoria: 'Cine', angulo: 'Qué puede enseñar Disney sobre narrativa para cuentas de Instagram', fuente_nombre: 'Variety', fuente_url: 'https://variety.com/', interest: null },
+  ];
+  renderTrends();
+}
+
+function markTrend(idx, val) {
+  trendsData[idx].interest = val;
+  if (val === true) {
+    currentTrendIdx = idx;
+    document.getElementById('trend-action-title').textContent = `"${trendsData[idx].titulo}"`;
+    document.getElementById('modal-trend-action').style.display = 'flex';
+  } else { renderTrends(); }
+}
+
+async function discardTrend(idx) {
+  // No muestra "Recuperar": directamente reemplaza
+  trendsData[idx] = { titulo: 'Buscando algo nuevo...', resumen: '', categoria: '...', _loading: true, interest: null };
+  renderTrends();
+  await loadTrends(idx);
+}
+
+function addTrendToCalendar(action) {
+  document.getElementById('modal-trend-action').style.display = 'none';
+  const t = trendsData[currentTrendIdx];
+  if (action === 'next') {
+    const year = currentDate.getFullYear(), month = currentDate.getMonth();
+    for (let w = 1; w <= 6; w++) for (let s = 0; s <= 2; s++) {
+      const key = getPostKey(year, month, w, s);
+      const p = calendarData[key];
+      if (!p || !p.tema) {
+        calendarData[key] = { status: 'incompleto', tema: t.titulo, hook: t.angulo || '', guion: t.resumen || '', cta: '' };
+        saveCalendar(); renderCalendar(); showToast('Sumado al calendario ✓'); renderTrends(); return;
+      }
+    }
+    showToast('No hay espacios libres en el mes actual');
+  } else {
+    showToast('Andá al calendario, abrí el post que querés reemplazar y editalo.');
+    switchTab('calendario', document.querySelector('.nav-tab'));
+  }
+  renderTrends();
+}
+
+// ─── FLASH ───────────────────────────────────────────────────────────────────
+async function loadFlash() {
+  const btn = document.getElementById('btn-refresh-flash');
+  if (btn) { btn.textContent = 'Cargando...'; btn.disabled = true; }
+  document.getElementById('flash-container').innerHTML = `<div style="text-align:center;padding:3rem;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+  const prompt = `Generá 6 datos o noticias breves del día ${new Date().toLocaleDateString('es-AR')} para Instagram Stories de una agencia creativa argentina.
+Mix: dato curioso, hecho tecnológico, pop culture, humor inteligente, reflexión.
+Incluí URL real de la fuente.
+Respondé SOLO con JSON sin markdown:
+[{"texto":"1-2 oraciones máx","emoji":"emoji relevante","tipo":"Dato|Noticia|Reflexión|Trivia","fuente_nombre":"nombre del medio","fuente_url":"https://..."},...]`;
+  try {
+    const text = await callAI([{ role: 'user', content: prompt }], true);
+    const items = parseJSON(text);
+    renderFlash(Array.isArray(items) ? items : [items]);
+  } catch(e) {
+    renderFlashFallback();
+  }
+  if (btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false; }
+}
+
+function renderFlash(items) {
+  const now = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const typeColors = { 'Dato': 'var(--sage)', 'Noticia': 'var(--terracotta)', 'Reflexión': '#8C4A9A', 'Trivia': '#4A6C8C' };
+  let html = `<div style="font-size:0.72rem;color:var(--muted-brown);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
+    <div style="width:6px;height:6px;border-radius:50%;background:var(--terracotta);animation:pulse 2s infinite;"></div>
+    Actualizado ${now} · Ideal para Stories
+  </div><div style="display:flex;flex-direction:column;gap:0.6rem;">`;
+  items.forEach((item, i) => {
+    const color = typeColors[item.tipo] || 'var(--muted-brown)';
+    html += `<div class="flash-card">
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;">
+        <span style="font-size:1.25rem;line-height:1.4;">${item.emoji || '💡'}</span>
+        <div style="flex:1;">
+          <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.25rem;">
+            <span style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:${color};font-weight:500;">${item.tipo}</span>
+          </div>
+          <p style="font-size:0.85rem;line-height:1.5;color:var(--ink);margin-bottom:0.35rem;">${escHtml(item.texto)}</p>
+          ${item.fuente_url ? `<a href="${escHtml(item.fuente_url)}" target="_blank" rel="noopener" class="source-link">↗ ${escHtml(item.fuente_nombre || 'Ver fuente')}</a>` : ''}
+        </div>
+        <button onclick="copyFlash(${i},this)" style="background:none;border:1px solid var(--beige);border-radius:3px;padding:0.2rem 0.5rem;font-size:0.65rem;cursor:pointer;color:var(--muted-brown);white-space:nowrap;flex-shrink:0;font-family:'DM Sans',sans-serif;">Copiar</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('flash-container').innerHTML = html;
+  window._flashItems = items; // guardamos para copiar
+}
+
+function renderFlashFallback() {
+  renderFlash([
+    { emoji: '🧠', texto: 'El cerebro consume el 20% de la energía del cuerpo siendo apenas el 2% del peso total. Pensar cansa más de lo que parece.', tipo: 'Dato', fuente_nombre: 'Scientific American', fuente_url: 'https://www.scientificamerican.com/' },
+    { emoji: '📱', texto: 'El 70% del tiempo en Instagram se pasa en Reels. Los primeros 3 segundos lo deciden todo.', tipo: 'Dato', fuente_nombre: 'Meta Newsroom', fuente_url: 'https://about.fb.com/news/' },
+    { emoji: '💭', texto: 'La creatividad no es un talento especial: es el resultado de muchos inputs mezclados con tiempo de descanso.', tipo: 'Reflexión', fuente_nombre: 'Harvard Business Review', fuente_url: 'https://hbr.org/' },
+    { emoji: '🎬', texto: 'La duración promedio de un Reel visto completo es de 11 segundos. El hook lo es absolutamente todo.', tipo: 'Trivia', fuente_nombre: 'Later', fuente_url: 'https://later.com/blog/' },
+    { emoji: '📚', texto: 'Leer 20 minutos al día equivale a aproximadamente 20 libros por año. El poder del hábito.', tipo: 'Dato', fuente_nombre: 'Goodreads', fuente_url: 'https://www.goodreads.com/' },
+    { emoji: '🌍', texto: 'Argentina lidera el consumo de contenido de salud mental en redes sociales en toda Latinoamérica.', tipo: 'Noticia', fuente_nombre: 'Infobae', fuente_url: 'https://www.infobae.com/' },
+  ]);
+}
+
+function copyFlash(idx, btn) {
+  const items = window._flashItems || [];
+  const text = items[idx] ? items[idx].texto : '';
+  navigator.clipboard.writeText(text).then(() => { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); });
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  let listos = 0, posteados = 0;
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  Object.keys(calendarData).forEach(k => {
+    if (k.startsWith(`${y}-${m}-`)) {
+      const p = calendarData[k];
+      if (p.status === 'listo') listos++;
+      if (p.status === 'posteado') posteados++;
+    }
+  });
+  document.getElementById('stat-listos').innerHTML = `Listos <span>${listos}</span>`;
+  document.getElementById('stat-posteados').innerHTML = `Posteados <span>${posteados}</span>`;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({ exportDate: new Date().toISOString(), calendar: calendarData, trends: trendsData }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `koleok-${new Date().toISOString().split('T')[0]}.json`; a.click();
+  showToast('Datos exportados ✓');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderCalendar();
+</script>
+
+<!--
+════════════════════════════════════════════════════════════════════════
+CÓMO HACER QUE LA IA FUNCIONE EN NETLIFY (SIN SABER PROGRAMAR)
+════════════════════════════════════════════════════════════════════════
+
+La IA no puede activarse directamente desde una página web por seguridad,
+necesitamos un "intermediario" que Netlify provee gratis.
+
+PASO 1 — Crear la estructura de archivos en tu computadora:
+
+  mi-proyecto/
+  ├── index.html                    ← este archivo
+  ├── netlify.toml                  ← archivo de configuración (ver abajo)
+  └── netlify/
+      └── functions/
+          └── ai.js                 ← el intermediario (ver abajo)
+
+PASO 2 — Crear netlify.toml (archivo de texto plano):
+
+  [functions]
+    node_bundler = "esbuild"
+
+PASO 3 — Crear netlify/functions/ai.js:
+
+  const Anthropic = require('@anthropic-ai/sdk');
+  exports.handler = async (event) => {
+    if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
+    try {
+      const { messages, useSearch } = JSON.parse(event.body);
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const params = { model: 'claude-sonnet-4-20250514', max_tokens: 1200, messages };
+      if (useSearch) params.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+      const response = await client.messages.create(params);
+      const text = response.content.filter(c => c.type === 'text').map(c => c.text).join('');
+      return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ text }) };
+    } catch(e) {
+      return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+    }
+  };
+
+PASO 4 — Subir a Netlify:
+  1. Ir a app.netlify.com → "Add new site" → "Import from GitHub"
+  2. O: instalar Netlify CLI, correr "netlify deploy" en la carpeta
+
+PASO 5 — Agregar tu clave de Anthropic:
+  En Netlify → tu sitio → Site Configuration → Environment variables
+  Agregar: ANTHROPIC_API_KEY = (tu clave de console.anthropic.com)
+
+Eso es todo. Gratis. Sin límite de tiempo.
+════════════════════════════════════════════════════════════════════════
+-->
+</body>
+</html>
